@@ -42,9 +42,9 @@ extern inference_model_data_t *inference_data;
 void model_data_uniformization(float *interence_wicket,uint32_t row,uint32_t col, float *dx_data,uint32_t now_row)
 {
     // if(dx_data->full_flag == DX_WICKET_NOT_FULL) return;
-    float *min = (float *)heap_caps_calloc(0,col*sizeof(float),MALLOC_CAP_8BIT);
-    float *max = (float *)heap_caps_calloc(0,col*sizeof(float),MALLOC_CAP_8BIT);
-    float *temp = (float *)heap_caps_calloc(0,col*sizeof(float),MALLOC_CAP_8BIT);
+    float *min = (float *)heap_caps_calloc(1,col*sizeof(float),MALLOC_CAP_8BIT);
+    float *max = (float *)heap_caps_calloc(1,col*sizeof(float),MALLOC_CAP_8BIT);
+    float *temp = (float *)heap_caps_calloc(1,col*sizeof(float),MALLOC_CAP_8BIT);
 
     float (*p_dx_data)[col] = dx_data;
     float (*p_wicket_data)[col] = interence_wicket;
@@ -87,11 +87,11 @@ void model_data_uniformization(float *interence_wicket,uint32_t row,uint32_t col
         {
             if(temp[j] == 0)
             {
-
+                p_wicket_data[i][j] = 99.0/100;
             }
             else
             {
-                p_wicket_data[i][j] = p_dx_data[i][j]/temp[j];
+                p_wicket_data[i][j] = (p_dx_data[i][j] - min[j])/temp[j];
             }
         }
 
@@ -110,7 +110,7 @@ void inference_data_update_timer_callback(void *pvParameters)
         {
             if(model_data->dx_data[j].full_flag == DX_WICKET_NOT_FULL) continue;
 
-            inference_data->model_data[i].dx_data[j].input_wicket_data = heap_caps_calloc(0,wicket_size,MALLOC_CAP_8BIT);
+            inference_data->model_data[i].dx_data[j].input_wicket_data = heap_caps_calloc(1,wicket_size,MALLOC_CAP_8BIT);
 
         }
     }

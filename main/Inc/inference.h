@@ -70,5 +70,7 @@ typedef struct _inference_describe
 }inference_model_data_t;
 
 
+void inference_init(void);
+
 #endif
 

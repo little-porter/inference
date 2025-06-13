@@ -4,15 +4,20 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 // #include "all_ops_resolver.h"
+// #include "model_data1.c"
 
-#define TFLM_AREA_SIZE  (3 * 1024 * 1024)           // 3M   张量数据存储空间（存储模型输入、输出、中间计算结果）
+#define TFLM_AREA_SIZE  (4 * 1024 * 1024)           // 3M   张量数据存储空间（存储模型输入、输出、中间计算结果）
 
 
 // 2. 创建操作符解析器(模型使用方法)
 static  tflite::MicroMutableOpResolver<128>  micro_op_resolver;
 // static tflite::AllOpsResolver micro_op_resolver;
 
-alignas(8) const unsigned char model_data1[10] = {0};
+extern const unsigned char model_data1[];
+extern float  test_data[280][3];
+extern const float test_Time[280];
+extern const float test_v[280];
+extern const float test_step[280];
 
 static uint8_t *tflm_area = NULL;
 
@@ -132,7 +137,7 @@ static void AllOpsResolver(tflite::MicroMutableOpResolver<128> *resolver)
 }
 
 /*初始化解释器*/
-static void tflm_interpreter_init(tflite::MicroInterpreter *interpreter,const unsigned char *model_data,uint8_t *tf_area)
+static void tflm_interpreter_init(tflite::MicroInterpreter **interpreter,const unsigned char *model_data,uint8_t *tf_area)
 {
     //数据空间判断
     if (tf_area == NULL) 
@@ -141,19 +146,19 @@ static void tflm_interpreter_init(tflite::MicroInterpreter *interpreter,const un
         return;
     }
      //加载模型
-    const tflite::Model *tl_model = tflite::GetModel(model_data);
+    static const tflite::Model *tl_model = tflite::GetModel(model_data);
     if (tl_model->version() != TFLITE_SCHEMA_VERSION) 
     {
         MicroPrintf("Model provided is schema version %d not equal to supported "
     		"version %d.", tl_model->version(), TFLITE_SCHEMA_VERSION);
         return;
     }
-   
+    // static tflite::MicroInterpreter interpreter_temp(tl_model, micro_op_resolver, tf_area, TFLM_AREA_SIZE,nullptr,nullptr,true);
     /* 创建解释器 */
-    interpreter = new tflite::MicroInterpreter(tl_model, micro_op_resolver, tf_area, TFLM_AREA_SIZE);
-
+    *interpreter = new tflite::MicroInterpreter(tl_model, micro_op_resolver, tf_area, TFLM_AREA_SIZE);
+    // *interpreter = &interpreter_temp;
     /*分配张量内存*/
-    TfLiteStatus allocate_status = interpreter->AllocateTensors();
+    TfLiteStatus allocate_status = (*interpreter)->AllocateTensors();
     MicroPrintf("interpreter is regester !");
     if (allocate_status != kTfLiteOk) {
         MicroPrintf("AllocateTensors() failed");
@@ -168,29 +173,40 @@ extern "C" void tflm_init(void)
     /*初始化张量内存*/
     tflm_area = (uint8_t *)heap_caps_malloc(TFLM_AREA_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 
+    for(int i = 0;i < 280; i++)
+    {
+        test_data[i][0] = test_step[i];
+        test_data[i][1] = test_v[i];
+        test_data[i][2] = test_Time[i];
+    }
+
     /*初始化模型使用方法*/
     AllOpsResolver(&micro_op_resolver);
 
     /*初始化SOC模型*/
     tflm_soc.model_data = model_data1;
     tflm_soc.tf_area = tflm_area;
-    tflm_interpreter_init(tflm_soc.interpreter, tflm_soc.model_data, tflm_soc.tf_area);
+    tflm_interpreter_init(&tflm_soc.interpreter, tflm_soc.model_data, tflm_soc.tf_area);
+#ifdef USE_SOH_MODEL 
     /*初始化SOH模型*/
     tflm_soh.model_data = model_data1;
     tflm_soh.tf_area = tflm_area;
     tflm_interpreter_init(tflm_soh.interpreter, tflm_soh.model_data, tflm_soh.tf_area);
+#endif
 }
 
 
 extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num,float *output_data)
 {
+    // tflm_interpreter_init(&tflm_soc.interpreter, tflm_soc.model_data, tflm_soc.tf_area);
     TfLiteTensor *input  = nullptr;
     TfLiteTensor *output = nullptr;
     tflite::MicroInterpreter *interpreter = nullptr;
 
+    tflm_soc.interpreter->AllocateTensors();
     switch (model_type)
     {
-    case 0:
+    case 1:
         /* code */
         input  = tflm_soc.interpreter->input(0);
         output = tflm_soc.interpreter->output(0);
@@ -222,6 +238,8 @@ extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num
         if(i>=2) return ;
         output_data[i] = output->data.f[i];
     }
+
+    // tflm_soc.interpreter->~MicroInterpreter();
 }
 
 
