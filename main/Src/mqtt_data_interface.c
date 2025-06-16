@@ -51,17 +51,17 @@ void mqtt_fixed_frame_fill(uint8_t *frm_buf,uint8_t frm_type,uint16_t frm_num,ui
     uint16_t frm_tail = MQTT_FRM_TAIL;
     uint16_t frm_len  = MQTT_FRM_LEN_MIN + data_len;
     static  uint16_t heart  = 0;
-    memcpy(&buf[MQTT_FRM_HEAD_IDX],&frm_head,sizeof(frm_head));
-    memcpy(&buf[MQTT_FRM_XY_VER_IDX],&sys_config.protocol_ver,sizeof(sys_config.protocol_ver));
-    memcpy(&buf[MQTT_FRM_SOUR_ADDR_IDX],&sys_config.dev_id,sizeof(sys_config.dev_id));
-    memcpy(&buf[MQTT_FRM_DEV_TYPE_IDX],&sys_config.dev_type,sizeof(sys_config.dev_type));
-    memcpy(&buf[MQTT_FRM_DEV_VER_IDX],&sys_config.dev_ver,sizeof(sys_config.dev_ver));
-    memcpy(&buf[MQTT_FRM_HEART_IDX],&heart,sizeof(heart));
-    memcpy(&buf[MQTT_FRM_TYPE_IDX],&frm_type,sizeof(frm_type));
-    memcpy(&buf[MQTT_FRM_DATA_LEN_IDX],&data_len,sizeof(data_len));
-    memcpy(&buf[MQTT_FRM_DATA_IDX],&sys_config.dev_id,sizeof(sys_config.dev_id));
+    memcpy(&frm_buf[MQTT_FRM_HEAD_IDX],&frm_head,sizeof(frm_head));
+    memcpy(&frm_buf[MQTT_FRM_XY_VER_IDX],&sys_config.protocol_ver,sizeof(sys_config.protocol_ver));
+    memcpy(&frm_buf[MQTT_FRM_SOUR_ADDR_IDX],&sys_config.dev_id,sizeof(sys_config.dev_id));
+    memcpy(&frm_buf[MQTT_FRM_DEV_TYPE_IDX],&sys_config.dev_type,sizeof(sys_config.dev_type));
+    memcpy(&frm_buf[MQTT_FRM_DEV_VER_IDX],&sys_config.dev_ver,sizeof(sys_config.dev_ver));
+    memcpy(&frm_buf[MQTT_FRM_HEART_IDX],&heart,sizeof(heart));
+    memcpy(&frm_buf[MQTT_FRM_TYPE_IDX],&frm_type,sizeof(frm_type));
+    memcpy(&frm_buf[MQTT_FRM_DATA_LEN_IDX],&data_len,sizeof(data_len));
+    memcpy(&frm_buf[MQTT_FRM_DATA_IDX],&sys_config.dev_id,sizeof(sys_config.dev_id));
 
-    memcpy(&buf[frm_len-2],&frm_tail,sizeof(frm_tail));
+    memcpy(&frm_buf[frm_len-2],&frm_tail,sizeof(frm_tail));
 }
 
 void mqtt_setFrm_ack(uint32_t setFrm_type,uint16_t frm_num)
@@ -81,7 +81,6 @@ void mqtt_setFrm_ack(uint32_t setFrm_type,uint16_t frm_num)
     
     uint16_t crc = mqtt_crc16(&buf[MQTT_FRM_XY_VER_IDX],frm_len-6);
     memcpy(&buf[frm_len-4],&crc,sizeof(crc));
-    memcpy(&buf[frm_len-2],&frm_tail,sizeof(frm_tail));
  
     mqtt_push_msg_to_fifo(buf,frm_len);
 }

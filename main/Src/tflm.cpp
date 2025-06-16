@@ -146,7 +146,7 @@ static void tflm_interpreter_init(tflite::MicroInterpreter **interpreter,const u
         return;
     }
      //加载模型
-    static const tflite::Model *tl_model = tflite::GetModel(model_data);
+    const tflite::Model *tl_model = tflite::GetModel(model_data);
     if (tl_model->version() != TFLITE_SCHEMA_VERSION) 
     {
         MicroPrintf("Model provided is schema version %d not equal to supported "
@@ -213,7 +213,26 @@ extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num
         interpreter = tflm_soc.interpreter;
         // tflm_soc.interpreter->Invoke();
         break;
-    
+    case 0:
+        /* code */
+        input  = tflm_soh.interpreter->input(0);
+        output = tflm_soh.interpreter->output(0);
+        interpreter = tflm_soh.interpreter;
+        break;
+    case 2:
+        /* code */
+        input  = tflm_rsk.interpreter->input(0);
+        output = tflm_rsk.interpreter->output(0);
+        interpreter = tflm_rsk.interpreter;
+        break;
+    case 3:
+        /* code */
+        input  = tflm_rul.interpreter->input(0);
+        output = tflm_rul.interpreter->output(0);
+        interpreter = tflm_rul.interpreter;
+        break;
+
+
     default:
         break;
     }
@@ -232,8 +251,11 @@ extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num
         return;
     }
 
+    if(output->type != kTfLiteFloat32)  return;
+    int num = output->bytes/4;
+
     /*获取输出张量数据*/
-    for (int i = 0; i < output->dims->size; i++) 
+    for (int i = 0; i < num; i++) 
     {
         if(i>=2) return ;
         output_data[i] = output->data.f[i];
