@@ -1,4 +1,24 @@
 dependencies:
+  espressif/dl_fft:
+    component_hash: da00ee80aca795c33ed70e4489492ee87322a41814665890a485587340b680c3
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.2.0
+  espressif/esp-dsp:
+    component_hash: 42dce32d46ac93dc11f60d368e29a830e9661c7345d794b8a45c343479cae636
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.2'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.0
   espressif/esp-nn:
     component_hash: 5d99b2991c109211ea5722bae481bbe243dc7e064d9ffd9e5dfa58aba7be9d88
     dependencies:
@@ -38,10 +58,12 @@ dependencies:
       type: service
     version: 1.20.0
 direct_dependencies:
+- espressif/dl_fft
+- espressif/esp-dsp
 - espressif/esp-nn
 - espressif/esp-tflite-micro
 - idf
 - joltwallet/littlefs
-manifest_hash: 14e09d78fed3f040f35fc099a8e5567e6cd454df878938f8e0996842e9fa2300
+manifest_hash: b941ac0e48ae4a746744d72ed95517487d9e103311a8ce7c154aa36edd71d404
 target: esp32s3
 version: 2.0.0

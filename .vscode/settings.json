@@ -44,6 +44,10 @@
     "bitset": "c",
     "algorithm": "c",
     "format": "c",
-    "cstdint": "c"
+    "cstdint": "c",
+    "littlefs_ops.h": "c",
+    "chrono": "c",
+    "gpio.h": "c",
+    "inference.h": "c"
   }
 }

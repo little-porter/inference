@@ -89,7 +89,7 @@ void bms_device_id_read(bms_device_t *bms_dev)
 
 void bms_device_reg_data_read(bms_device_t *bms_dev)
 {
-    uint8_t cmd[8] = {0x01,0x03,0x00,0x00,0x00,0x1E,0x00,0x00};
+    uint8_t cmd[8] = {0x01,0x03,0x00,0x00,0x00,0x1F,0x00,0x00};
 
     uint16_t crc = bms_crc16_calculate(cmd,6);
     cmd[6] = crc>>8;
@@ -98,6 +98,7 @@ void bms_device_reg_data_read(bms_device_t *bms_dev)
     rs485_push_data_to_tx_fifo(&rs485_driver,cmd,8);
 }
 
+/*充放电状态获取*/
 void bms_get_cfd_state(bms_device_t *bms_dev)
 {
     float temp_state = 0;
@@ -118,6 +119,7 @@ void bms_get_cfd_state(bms_device_t *bms_dev)
     bms_dev->pack_cfd_zt = temp_state;
 }
 
+/*充放电时间计算*/
 void  bms_get_cfd_time(bms_device_t *bms_dev)
 {
     static uint8_t pre_CFDFlag = 1;             //记录上一次充放电状态
@@ -136,11 +138,13 @@ void  bms_get_cfd_time(bms_device_t *bms_dev)
     ESP_LOGI(TAG,"充放电时间:%d S",(int)bms_dev->pack_cfd_time);
 }
 
+/*充放电率计算*/
 void bms_get_cfd_C_rate(bms_device_t *bms_dev)
 {
     bms_dev->pack_cfd_Crate = abs(bms_dev->pack_fCurrent)/ BMS_PACK_CAPACITY;        //充放电率 = 当前电流/ 容量（Crate = I/C）
 }
 
+/*充放电轮次计算 */
 void bms_get_cfd_cycle(bms_device_t *bms_dev)
 {
     static float fdl = 0;                            /*放电量记录*/
@@ -156,6 +160,7 @@ void bms_get_cfd_cycle(bms_device_t *bms_dev)
     }
 }
 
+/*soh估算*/
 void bms_SOH_estimate(bms_device_t *bms_dev)
 {
     static float real_dl = 0;       //实际电池电量记录
@@ -213,6 +218,8 @@ void bms_SOH_estimate(bms_device_t *bms_dev)
 
 }
 
+
+/*ic面积计算*/
 void bms_cfd_ICArea(bms_device_t *bms_dev)
 {
     static float pre_voltage[20] = {0};
@@ -250,6 +257,7 @@ void bms_device_offline_check(bms_device_t *bms_dev)
     if(bms_dev->offline_time >= BMS_OFFLINE_TIME)
     {
         bms_dev->status = BMS_OFFLINE;
+        bms_dev->process = BMS_READ_ID;
     }
     else
     {
@@ -279,20 +287,21 @@ void bms_data_deal(bms_device_t *bms_dev,uint8_t *buf,uint16_t len)
     }
 
 
-    if(buf[2] == 60)
+    if(buf[2] == 62)
     {
         bms_dev->packVoltage    = buf[BMS_FRM_PACK_VOLTAGE_IDX]<<8 | buf[BMS_FRM_PACK_VOLTAGE_IDX+1];
-        bms_dev->cellNum        = buf[BMS_FRM_CELL_NUM_IDX]<<8 | buf[BMS_FRM_CELL_NUM_IDX];
-        bms_dev->packSOC        = buf[BMS_FRM_SOC_IDX]<<8 | buf[BMS_FRM_SOC_IDX];
-        bms_dev->packCapacity   = buf[BMS_FRM_CAPACITY_IDX]<<8 | buf[BMS_FRM_CAPACITY_IDX];
-        bms_dev->packSOH        = buf[BMS_FRM_SOH_IDX]<<8 | buf[BMS_FRM_SOH_IDX];
-        bms_dev->packCurrent    = buf[BMS_FRM_CURRENT_IDX]<<8 | buf[BMS_FRM_CURRENT_IDX];
-        bms_dev->temp_env       = buf[BMS_FRM_TEMP_IDX]<<8 | buf[BMS_FRM_TEMP_IDX];
-        bms_dev->low_temp_cell  = buf[BMS_FRM_CELL_LOWTEMP_IDX]<<8 | buf[BMS_FRM_CELL_LOWTEMP_IDX];
-        bms_dev->temp_mos       = buf[BMS_FRM_MOS_TEMP_IDX]<<8 | buf[BMS_FRM_MOS_TEMP_IDX];
+        bms_dev->cellNum        = buf[BMS_FRM_CELL_NUM_IDX]<<8 | buf[BMS_FRM_CELL_NUM_IDX+1];
+        bms_dev->packSOC        = buf[BMS_FRM_SOC_IDX]<<8 | buf[BMS_FRM_SOC_IDX+1];
+        bms_dev->packCapacity   = buf[BMS_FRM_CAPACITY_IDX]<<8 | buf[BMS_FRM_CAPACITY_IDX+1];
+        bms_dev->packSOH        = buf[BMS_FRM_SOH_IDX]<<8 | buf[BMS_FRM_SOH_IDX+1];
+        bms_dev->packCurrent    = buf[BMS_FRM_CURRENT_IDX]<<8 | buf[BMS_FRM_CURRENT_IDX+1];
+        bms_dev->temp_env       = buf[BMS_FRM_TEMP_IDX]<<8 | buf[BMS_FRM_TEMP_IDX+1];
+        bms_dev->low_temp_cell  = buf[BMS_FRM_CELL_LOWTEMP_IDX]<<8 | buf[BMS_FRM_CELL_LOWTEMP_IDX+1];
+        bms_dev->temp_mos       = buf[BMS_FRM_MOS_TEMP_IDX]<<8 | buf[BMS_FRM_MOS_TEMP_IDX+1];
         memcpy(bms_dev->cell_voltage,&buf[BMS_FRM_CELL1_VOLTAGE_IDX],40);
         bms_data_exchange(bms_dev->cell_voltage,20);
-        bms_dev->high_temp_cell = buf[BMS_FRM_CELL_HIGHTEMP_IDX]<<8 | buf[BMS_FRM_CELL_HIGHTEMP_IDX];
+        bms_dev->high_temp_cell = buf[BMS_FRM_CELL_HIGHTEMP_IDX]<<8 | buf[BMS_FRM_CELL_HIGHTEMP_IDX+1];
+        bms_dev->pack_cfd_inRes = buf[BMS_FRM_PACK_INRES_IDX]<<8 | buf[BMS_FRM_PACK_INRES_IDX+1];
         ESP_LOGW(TAG,"Read bms reg data success!");
 
         bms_dev->pack_fVoltage = bms_dev->packVoltage/100.0f;
@@ -308,8 +317,9 @@ void bms_data_deal(bms_device_t *bms_dev,uint8_t *buf,uint16_t len)
             // ld_model->update_use_ifo = YES;
             // process_4g_init = config_top_registration_4g;   
             // registerSendflag = 0;  
-            bms_dev->process = BMS_READ_REG;
+            
         }
+        bms_dev->process = BMS_READ_REG;
     }
     else if(buf[2] == BMS_ID_LEN_28)
     {
@@ -317,8 +327,9 @@ void bms_data_deal(bms_device_t *bms_dev,uint8_t *buf,uint16_t len)
         {
             memcpy(bms_dev->id,&buf[3],BMS_ID_LEN_28);
 
-            bms_dev->process = BMS_READ_REG;
+           
         }
+         bms_dev->process = BMS_READ_REG;
     }
     else{/*not deal*/;}
    
@@ -341,6 +352,11 @@ void bms_device_msg_deal_task_handler(void *pvParameters)
         bms_msg_t bms_msg;
         xQueueReceive(bms_rx_queue, &bms_msg, portMAX_DELAY);
         bms_data_deal(bms_dev,bms_msg.data,bms_msg.num);
+        for(int i = 0; i < bms_msg.num; i++)
+        {
+            printf("%02x ",bms_msg.data[i]);
+        }
+        printf("\r\n");
     }
 }
 
@@ -351,6 +367,14 @@ void bms_device_cmd_send_task_handler(void *pvParameters)
     while(1)
     {
         bms_device_offline_check(bms_dev);
+        bms_get_cfd_state(bms_dev);
+        bms_get_cfd_time(bms_dev);
+        bms_get_cfd_C_rate(bms_dev);
+        bms_get_cfd_cycle(bms_dev);
+        bms_SOH_estimate(bms_dev);
+        bms_cfd_ICArea(bms_dev);
+
+
         switch (bms_dev->process)
         {
         case BMS_READ_ID:

@@ -6,11 +6,7 @@ static const char *TAG = "littlefs_ops";
 
 #define LITTLEFS_DIRECTORY  "/littlefs"
 
-typedef struct
-{
-    char    *data;
-    uint32_t size;
-}littlefs_file_data_t;
+
 
 void littlefs_ops_test_task(void *pvParameters);
 
@@ -74,9 +70,9 @@ void littlefs_ops_init(void)
         ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
     }
 
-    
+    littlefs_ops_read_file_info();
 
-    xTaskCreatePinnedToCore(littlefs_ops_test_task, "littlefs_test_task", 4096, NULL, 5, NULL, 0);
+    // xTaskCreatePinnedToCore(littlefs_ops_test_task, "littlefs_test_task", 4096, NULL, 5, NULL, 0);
 }
 
 

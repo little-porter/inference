@@ -19,20 +19,10 @@ extern const float test_Time[280];
 extern const float test_v[280];
 extern const float test_step[280];
 
-static uint8_t *tflm_area = NULL;
-
-typedef struct _tflm_module
-{
-    /* data */
-    tflite::MicroInterpreter *interpreter;      //解释器
-    const unsigned char *model_data;            //模型数据
-    uint8_t *tf_area;                           //张量区域
-}tflm_module_t;
+static uint8_t *tflm_area = NULL;               //张量区域
 
 tflm_module_t tflm_soc;
-tflm_module_t tflm_soh;
-tflm_module_t tflm_rul;
-tflm_module_t tflm_rsk;
+
 
 static void AllOpsResolver(tflite::MicroMutableOpResolver<128> *resolver) 
 {
@@ -137,16 +127,16 @@ static void AllOpsResolver(tflite::MicroMutableOpResolver<128> *resolver)
 }
 
 /*初始化解释器*/
-static void tflm_interpreter_init(tflite::MicroInterpreter **interpreter,const unsigned char *model_data,uint8_t *tf_area)
+extern "C"  void tflm_create(tflm_module_t *tflm)
 {
     //数据空间判断
-    if (tf_area == NULL) 
+    if (tflm_area == NULL || tflm->model_data == NULL) 
     {
-        printf("tf_area don't allocate memory!");
+        printf("tflm_area don't allocate memory or model_data is null!");
         return;
     }
      //加载模型
-    const tflite::Model *tl_model = tflite::GetModel(model_data);
+    const tflite::Model *tl_model = tflite::GetModel(tflm->model_data);
     if (tl_model->version() != TFLITE_SCHEMA_VERSION) 
     {
         MicroPrintf("Model provided is schema version %d not equal to supported "
@@ -155,14 +145,35 @@ static void tflm_interpreter_init(tflite::MicroInterpreter **interpreter,const u
     }
     // static tflite::MicroInterpreter interpreter_temp(tl_model, micro_op_resolver, tf_area, TFLM_AREA_SIZE,nullptr,nullptr,true);
     /* 创建解释器 */
-    *interpreter = new tflite::MicroInterpreter(tl_model, micro_op_resolver, tf_area, TFLM_AREA_SIZE);
-    // *interpreter = &interpreter_temp;
+    tflite::MicroInterpreter *interpreter = new tflite::MicroInterpreter(tl_model, micro_op_resolver, tflm_area, TFLM_AREA_SIZE);
     /*分配张量内存*/
-    TfLiteStatus allocate_status = (*interpreter)->AllocateTensors();
+    TfLiteStatus allocate_status = interpreter->AllocateTensors();
     MicroPrintf("interpreter is regester !");
     if (allocate_status != kTfLiteOk) {
         MicroPrintf("AllocateTensors() failed");
         return;
+    }
+    if(interpreter->input_tensor(0)->dims->size != 3)
+    {
+        MicroPrintf("模型错误!");
+        interpreter->~MicroInterpreter();       //释放资源
+        return;
+    }
+
+    tflm->interpreter = interpreter;
+    tflm->input_row = interpreter->input_tensor(0)->dims->data[1];
+    tflm->input_col = interpreter->input_tensor(0)->dims->data[2];
+    
+
+    for(int i = 0; i < interpreter->input_tensor(0)->dims->size; i++)
+    {
+        MicroPrintf("input_tensor_dims[%d] = %d", i, interpreter->input_tensor(0)->dims->data[i]);
+    }
+    for(int i = 0; i < interpreter->output_tensor(0)->dims->size; i++)
+    {
+        if(i == 0)   tflm->result_num = interpreter->output_tensor(0)->dims->data[i];
+        else         tflm->result_num *= interpreter->output_tensor(0)->dims->data[i];
+        MicroPrintf("output_tensor_dims[%d] = %d", i, interpreter->output_tensor(0)->dims->data[i]);
     }
 
     // ESP_LOGI(TAG, "Initializing tflm is over!");
@@ -184,9 +195,8 @@ extern "C" void tflm_init(void)
     AllOpsResolver(&micro_op_resolver);
 
     /*初始化SOC模型*/
-    tflm_soc.model_data = model_data1;
-    tflm_soc.tf_area = tflm_area;
-    tflm_interpreter_init(&tflm_soc.interpreter, tflm_soc.model_data, tflm_soc.tf_area);
+    // tflm_soc.model_data = model_data1;
+    // tflm_create(&tflm_soc);
 #ifdef USE_SOH_MODEL 
     /*初始化SOH模型*/
     tflm_soh.model_data = model_data1;
@@ -196,46 +206,18 @@ extern "C" void tflm_init(void)
 }
 
 
-extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num,float *output_data)
+extern "C" void tflm_run(tflm_module_t *tflm,float *input_data,uint32_t input_num,float *output_data,uint32_t output_num)
 {
     // tflm_interpreter_init(&tflm_soc.interpreter, tflm_soc.model_data, tflm_soc.tf_area);
-    TfLiteTensor *input  = nullptr;
-    TfLiteTensor *output = nullptr;
-    tflite::MicroInterpreter *interpreter = nullptr;
+   if(tflm->interpreter == NULL)
+   {
+      MicroPrintf("未加载模型，解释器为空！");
+   }
 
-    tflm_soc.interpreter->AllocateTensors();
-    switch (model_type)
-    {
-    case 1:
-        /* code */
-        input  = tflm_soc.interpreter->input(0);
-        output = tflm_soc.interpreter->output(0);
-        interpreter = tflm_soc.interpreter;
-        // tflm_soc.interpreter->Invoke();
-        break;
-    case 0:
-        /* code */
-        input  = tflm_soh.interpreter->input(0);
-        output = tflm_soh.interpreter->output(0);
-        interpreter = tflm_soh.interpreter;
-        break;
-    case 2:
-        /* code */
-        input  = tflm_rsk.interpreter->input(0);
-        output = tflm_rsk.interpreter->output(0);
-        interpreter = tflm_rsk.interpreter;
-        break;
-    case 3:
-        /* code */
-        input  = tflm_rul.interpreter->input(0);
-        output = tflm_rul.interpreter->output(0);
-        interpreter = tflm_rul.interpreter;
-        break;
-
-
-    default:
-        break;
-    }
+    tflite::MicroInterpreter *interpreter = (tflite::MicroInterpreter *)tflm->interpreter;
+    TfLiteTensor *input  = interpreter->input(0);
+    TfLiteTensor *output = interpreter->output(0);
+    interpreter->AllocateTensors();
 
     /*设置输入张量数据*/
     for(int i = 0; i < input_num; i++)
@@ -253,16 +235,27 @@ extern "C" void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num
 
     if(output->type != kTfLiteFloat32)  return;
     int num = output->bytes/4;
+    if(num > output_num)    num = output_num;
+
 
     /*获取输出张量数据*/
     for (int i = 0; i < num; i++) 
     {
-        if(i>=2) return ;
         output_data[i] = output->data.f[i];
     }
-
-    // tflm_soc.interpreter->~MicroInterpreter();
 }
+
+extern "C" void tflm_release(tflm_module_t *tflm)
+{
+    if(tflm->interpreter == nullptr || tflm == nullptr)    return;
+    tflm->model_data = NULL;
+    tflm->input_col = 0;
+    tflm->input_row = 0;
+    tflite::MicroInterpreter *interpreter = (tflite::MicroInterpreter *)tflm->interpreter;
+
+    interpreter->~MicroInterpreter();
+}
+
 
 
 

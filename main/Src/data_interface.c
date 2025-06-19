@@ -1,30 +1,51 @@
 #include "data_interface.h"
+#include "bms.h"
 
 #define MODEL_DATA_TYPE_NUM          11
+
 #define MODEL_WICKET_ROW             280
 #define MODEL_WICKET_COL             MODEL_DATA_TYPE_NUM
 
-#define DX_WICKET_FULL               1
-#define DX_WICKET_NOT_FULL           0
+// #define DX_WICKET_FULL               1
+// #define DX_WICKET_NOT_FULL           0
+
+typedef enum {
+    DATA_TYPE_CFDLC = 0 ,           //充放电次数
+    DATA_TYPE_CFDZT = 1 ,           //充放电状态
+    DATA_TYPE_DY    = 2 ,           //电压
+    DATA_TYPE_DL    = 3 ,           //电流
+    DATA_TYPE_CFDL  = 4 ,           //充放电率
+    DATA_TYPE_CFDT  = 5 ,           //充放电时间
+    DATA_TYPE_DCLZ  = 6 ,           //电池内阻
+    DATA_TYPE_IC    = 7 ,           //增量容量
+    DATA_TYPE_SOC   = 8 ,           //荷电状态
+    DATA_TYPE_RUL   = 9 ,           //剩余寿命
+    DATA_TYPE_SOH   = 10 ,          //健康状态
+    // RSK_FLAG,                    //热失控率
+}data_type_flag;
+
+
+typedef enum _data_update_flag
+{
+    DATA_UPDATE_FLAG_FALSE = 0,
+    DATA_UPDATE_FLAG_TRUE = 1,
+}data_update_flag_t;
 
 
 typedef struct _model_dx_data
 {
-    uint8_t   input_data_type[MODEL_DATA_TYPE_NUM];                 //模型窗口输入数据类型
-    float     input_wicket[MODEL_WICKET_ROW][MODEL_WICKET_COL];     //模型窗口原始数据
-    uint32_t  current_row;                                          //当前数据更新行
-    uint8_t   full_flag;                                            //窗口数据满标志    
+    // uint8_t   input_data_type[MODEL_DATA_TYPE_NUM];                                   //模型窗口输入数据类型
+    float     real_data[MODEL_WICKET_COL];                                            //模型窗口原始数据
+    data_update_flag_t update_flag;
+    // uint32_t  current_row;                                                           //当前数据更新行
+    // data_wicket_full_state_t   full_flag;                                            //窗口数据满标志    
 }model_dx_data_t;
 
 
 
 typedef struct{
-    // uint8_t   type;                             //模型类型0-3
-    uint32_t  wicket_row;                       //模型窗口行数
-    uint32_t  wicket_cols;                      //模型窗口列数
-
     uint8_t   dx_num;                           //电芯数量
-    model_dx_data_t dx_data[PACK_DX_MAX_NUM];   //电芯数据
+    model_dx_data_t *dx_data;                   //电芯数据
     
     uint32_t  data_get_cycle;                   //数据获取周期
 }model_data_t;
@@ -36,8 +57,6 @@ typedef struct{
 // }model_interface_t;
 
 model_data_t *model_data;
-
-extern inference_model_data_t *inference_data;
 
 void model_data_uniformization(float *interence_wicket,uint32_t row,uint32_t col, float *dx_data,uint32_t now_row)
 {
@@ -103,16 +122,33 @@ void model_data_uniformization(float *interence_wicket,uint32_t row,uint32_t col
 
 void inference_data_update_timer_callback(void *pvParameters)
 {
-    for(uint8_t i = 0; i < inference_data->model_num; i++)
+    extern inference_model_data_t *g_inference_data[MODEL_MAX_NUM];
+    for(uint8_t i = 0; i < MODEL_MAX_NUM; i++)
     {
-        uint32_t  wicket_size = sizeof(float) * inference_data->model_data[i].input_wicket_col * inference_data->model_data[i].input_wicket_row;
-        for(uint8_t j = 0; j < inference_data->model_data[i].dx_num; j++)
+        if(g_inference_data[i] == NULL)     continue;
+
+        for(uint32_t j = 0; j < g_inference_data[i]->model_data.dx_num; j++)
         {
-            if(model_data->dx_data[j].full_flag == DX_WICKET_NOT_FULL) continue;
+            if(model_data->dx_data[j].update_flag != DATA_UPDATE_FLAG_TRUE)     continue;
+           
+            model_data->dx_data[j].update_flag = DATA_UPDATE_FLAG_FALSE;
 
-            inference_data->model_data[i].dx_data[j].input_wicket_data = heap_caps_calloc(1,wicket_size,MALLOC_CAP_8BIT);
+            uint32_t row = g_inference_data[i]->model_data.dx_data[j].current_row;
+            uint32_t col = g_inference_data[i]->model_data.input_wicket_col;
+            for(uint32_t k = 0; k < g_inference_data[i]->model_data.input_wicket_col; k++)
+            {
+                g_inference_data[i]->model_data.dx_data[j].input_wicket_data[row*col+k] = model_data->dx_data[j].real_data[g_inference_data[i]->model_data.input_value_type[k]];        //按照数据类型为模型填充真实数据
+            }
 
+            g_inference_data[i]->model_data.dx_data[j].current_row++;
+            g_inference_data[i]->model_data.dx_data[j].current_row %= g_inference_data[i]->model_data.input_wicket_row;
+
+            if(g_inference_data[i]->model_data.dx_data[j].current_row == 0)
+            {
+                g_inference_data[i]->model_data.dx_data[j].full_flag = WICKET_FULL;
+            }
         }
+        
     }
 }
 
@@ -120,17 +156,63 @@ void inference_data_update_timer_init(void)
 {
     TimerHandle_t xTimer = xTimerCreate(
         "infDataTimer",                             // 名称
-        pdMS_TO_TICKS(180000),                      // m秒
+        pdMS_TO_TICKS(1000),                      // m秒
         pdTRUE,                                     // 自动重载
         (void *)0,                                  // 回调函数参数
         inference_data_update_timer_callback        // 回调函数
     );
+    xTimerStart(xTimer, 0);
+}
+
+void data_real_update_task_handler(void *pvParameters)
+{
+    while(1)
+    {
+        if(sys_config.model_input_source == MODEL_DATA_SOURCE_BMS)
+        {
+            if(bms_device.status == BMS_OFFLINE)  return;
+
+            if(model_data == NULL) break;
+
+            for(uint32_t i = 0; i < model_data->dx_num; i++)
+            {
+                // uint16_t row = model_data->dx_data[i].current_row;
+
+                model_data->dx_data[i].real_data[DATA_TYPE_CFDLC] = bms_device.pack_cfd_lc;
+                model_data->dx_data[i].real_data[DATA_TYPE_CFDZT] = bms_device.pack_cfd_zt;
+                model_data->dx_data[i].real_data[DATA_TYPE_DY] = bms_device.cell_voltage[i] / 100;
+                model_data->dx_data[i].real_data[DATA_TYPE_DL] = bms_device.pack_fCurrent;
+                model_data->dx_data[i].real_data[DATA_TYPE_CFDL] = bms_device.pack_cfd_Crate;
+                model_data->dx_data[i].real_data[DATA_TYPE_CFDT] = bms_device.pack_cfd_time;
+                // model_data->dx_data[i].input_wicket[row][DATA_TYPE_DCLZ] = bms_device.pack_cfd_zt;
+                model_data->dx_data[i].real_data[DATA_TYPE_IC] = bms_device.pack_cfd_ic;
+                // model_data->dx_data[i].input_wicket[row][DATA_TYPE_SOC] = bms_device.;
+                // model_data->dx_data[i].input_wicket[row][DATA_TYPE_RUL] = bms_device.;
+                model_data->dx_data[i].real_data[DATA_TYPE_SOH] = bms_device.pack_SOH_estimate;
+
+                // model_data->dx_data[i].current_row++;
+                model_data->dx_data[i].update_flag = DATA_UPDATE_FLAG_TRUE;
+
+            }
+
+            
+
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 void data_interface_init(void)
 {
+    model_data = heap_caps_malloc(sizeof(model_data_t), MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
+    model_data->dx_num = sys_config.pack_config.cell_num;
 
-    
+    model_data->dx_data = heap_caps_malloc(sizeof(inference_dx_data_t)*model_data->dx_num, MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
+
+    xTaskCreatePinnedToCore(data_real_update_task_handler, "data_real_task", 1024*5, NULL, 7, NULL, 0);
+
+    inference_data_update_timer_init();
 }
 
 

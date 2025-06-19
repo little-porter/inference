@@ -7,24 +7,24 @@
 extern "C" {
 #endif
 
+typedef struct _tflm_module
+{
+    /* data */
+    void *interpreter;                          //解释器
+    const unsigned char *model_data;            //模型数据
+    uint32_t input_row;                         //输入行    
+    uint32_t input_col;                         //输入列
+    uint32_t result_num; 
+}tflm_module_t;
 
 
 
 void tflm_init(void);
-void tflm_run(uint8_t model_type,float *input_data,uint32_t input_num,float *output_data);
+void tflm_create(tflm_module_t *tflm);
+void tflm_release(tflm_module_t *tflm);
+void tflm_run(tflm_module_t *tflm,float *input_data,uint32_t input_num,float *output_data,uint32_t output_num);
 
-// typedef struct _tflm_module
-// {
-//     /* data */
-//     tflite::MicroInterpreter *interpreter;      //解释器
-//     const unsigned char *model_data;            //模型数据
-//     uint8_t *tf_area;                           //张量区域
-// }tflm_module_t;
 
-// extern tflm_module_t tflm_soc;
-// extern tflm_module_t tflm_soh;
-// extern tflm_module_t tflm_rul;
-// extern tflm_module_t tflm_rsk;
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "system.h"
+#include "project_system.h"
 
 #include "driver/gpio.h"
 
@@ -24,10 +24,12 @@ typedef struct _led_t
 {
     /* data */
     led_state_t state;
+    led_default_level_t default_level;
     gpio_num_t  pin;
-
-
 }led_t;
 
+extern led_t led_run;
+
+void led_init(led_t *led, gpio_num_t pin, led_default_level_t level,led_state_t state);
 
 

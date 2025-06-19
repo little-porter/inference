@@ -109,10 +109,10 @@ void mqtt_setFrm_deal(uint8_t *data,uint16_t len)
         ESP_LOGI(TAG,"*********************************************");
         ESP_LOGI(TAG,"接收到模型启用帧！");
         ESP_LOGI(TAG,"*********************************************");
-        sys_config.model_config.SOH_model_use = data[MQTT_FRM_DATA_IDX+4];
-        sys_config.model_config.SOC_model_use = data[MQTT_FRM_DATA_IDX+5];
-        sys_config.model_config.RUL_model_use = data[MQTT_FRM_DATA_IDX+6];
-        sys_config.model_config.RSK_model_use = data[MQTT_FRM_DATA_IDX+7];
+        sys_config.soh_config.use = data[MQTT_FRM_DATA_IDX+4];
+        sys_config.soc_config.use = data[MQTT_FRM_DATA_IDX+5];
+        sys_config.rul_config.use = data[MQTT_FRM_DATA_IDX+6];
+        sys_config.rsk_config.use = data[MQTT_FRM_DATA_IDX+7];
 
         mqtt_setFrm_ack(SETFRM_TYPE_MODEL_USE,frm_heart);
         break;
@@ -243,10 +243,10 @@ void mqtt_queryFrm_deal(uint8_t *data,uint16_t len)
         ESP_LOGI(TAG,"*********************************************");
         ESP_LOGI(TAG,"接收到模型启用信息查询帧！");
         ESP_LOGI(TAG,"*********************************************");
-        sys_config.model_config.SOH_model_use = data[MQTT_FRM_DATA_IDX+4];
-        sys_config.model_config.SOC_model_use = data[MQTT_FRM_DATA_IDX+5];
-        sys_config.model_config.RUL_model_use = data[MQTT_FRM_DATA_IDX+6];
-        sys_config.model_config.RSK_model_use = data[MQTT_FRM_DATA_IDX+7];
+        sys_config.soh_config.use = data[MQTT_FRM_DATA_IDX+4];
+        sys_config.soc_config.use = data[MQTT_FRM_DATA_IDX+5];
+        sys_config.rul_config.use = data[MQTT_FRM_DATA_IDX+6];
+        sys_config.rsk_config.use = data[MQTT_FRM_DATA_IDX+7];
 
         mqtt_setFrm_ack(SETFRM_TYPE_MODEL_USE,frm_heart);
         break;

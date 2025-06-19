@@ -2,8 +2,8 @@
 #define __INFERENCE_H__
 
 #include "project_system.h"
-
-
+#include "tflm.h"
+#include "config.h"
 
 
 
@@ -43,30 +43,42 @@ typedef enum
 //     int_char  rated_capacity;                                    //额定容量
 // }inference_describe_t;
 
+
+typedef enum _wicket_full_state
+{
+    WICKET_NOT_FULL = 0,
+    WICKET_FULL = 1,
+}wicket_full_state_t;
+
+
 /*单组推理数据定义*/
 typedef struct _inference_data
 {
     /* data */
-    float     *input_wicket_data;          //推理输入数据
-    float     inference_result[2];         //推理结果
+    float       *input_wicket_data;          //推理输入数据
+    float       *inference_result;           //推理结果
+    uint32_t    current_row;
+    wicket_full_state_t full_flag;
     inf_state_t state;
 }inference_data_t;
 
 /*电芯推理数据定义*/
 typedef struct _inference_dx_data
 {
-    inference_data_t dx_data[PACK_DX_MAX_NUM];
+    inference_data_t *dx_data;
     uint32_t  dx_num;
     uint32_t  input_wicket_row;
     uint32_t  input_wicket_col;
-    uint32_t  input_data_num;
+    uint32_t  result_num;
+    uint16_t  input_value_type[13];  
 }inference_dx_data_t;
 
 /*模型推理数据定义*/
 typedef struct _inference_describe
 {
-    inference_dx_data_t model_data[MODEL_MAX_NUM];
-    uint32_t  model_num;
+    inference_dx_data_t model_data;
+    tflm_module_t tflm;
+    model_t type;
 }inference_model_data_t;
 
 

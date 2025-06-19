@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 
-
+void data_interface_init(void);
 
 
 #ifdef __cplusplus

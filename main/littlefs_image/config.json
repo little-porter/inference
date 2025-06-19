@@ -1,0 +1,87 @@
+{
+    "tl_device": {
+        "ota_flag":   0,
+        "sleep_mode": 0,
+        "dev_id":     0,
+        "input_data": 0,
+        "output_data":0,
+        "result":     0
+    },
+
+    "rs485_device":{
+        "baudrate": 115200,
+        "use":      1
+    },
+
+    "can_device":{
+        "baudrate": 500000,
+        "use":      1
+    },
+
+    "dtu_4g":{
+        "name":     "Y100E",
+        "baudrate": 115200,
+        "use":      1
+    },
+
+    "wifi":{
+        "ssid":     "ssid",
+        "password": "12345678",
+        "use":      1
+    },
+
+    "soh_model":{
+        "type":  1,
+        "value_type": [0,1,0],
+        "file_name": "soh_model.bin",
+        "row":       0,
+        "col":       0,
+        "result":    0,
+        "use":       1
+    },
+
+    "soc_model":
+    {
+        "type":  1,
+        "value_type": [0,2,5],
+        "file_name": "soc_model.bin",
+        "row":       280,
+        "col":       3,
+        "result":    3,
+        "use":       1
+    },
+
+    "rul_model":{
+        "type":  1,
+        "value_type": [0,1,0],
+        "file_name": "rul_model.bin",
+        "row":       0,
+        "col":       0,
+        "result":    0,
+        "use":       1
+    },
+
+    "rsk_model":{
+        "type":  1,
+        "value_type": [0,1,0],
+        "file_name": "rsk_model.bin",
+        "row":       0,
+        "col":       0,
+        "result":    0,
+        "use":       1
+    },
+
+    "cell":{
+        "number":   1,
+        "capacity": 0.0,
+        "volup_limit":   4.2,
+        "coldown_limit": 2.5
+    },
+
+    "pack":{
+        "cell_number":  20,
+        "capacity":     0.0
+    }
+}
+
+
