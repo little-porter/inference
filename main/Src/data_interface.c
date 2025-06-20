@@ -34,19 +34,15 @@ typedef enum _data_update_flag
 
 typedef struct _model_dx_data
 {
-    // uint8_t   input_data_type[MODEL_DATA_TYPE_NUM];                                   //模型窗口输入数据类型
     float     real_data[MODEL_WICKET_COL];                                            //模型窗口原始数据
-    data_update_flag_t update_flag;
-    // uint32_t  current_row;                                                           //当前数据更新行
-    // data_wicket_full_state_t   full_flag;                                            //窗口数据满标志    
+    data_update_flag_t update_flag;   
 }model_dx_data_t;
 
 
 
 typedef struct{
     uint8_t   dx_num;                           //电芯数量
-    model_dx_data_t *dx_data;                   //电芯数据
-    
+    model_dx_data_t dx_data[PACK_DX_MAX_NUM];   //电芯数据
     uint32_t  data_get_cycle;                   //数据获取周期
 }model_data_t;
 
@@ -56,7 +52,7 @@ typedef struct{
 //     uint8_t      model_num;
 // }model_interface_t;
 
-model_data_t *model_data;
+model_data_t model_data;
 
 void model_data_uniformization(float *interence_wicket,uint32_t row,uint32_t col, float *dx_data,uint32_t now_row)
 {
@@ -129,15 +125,15 @@ void inference_data_update_timer_callback(void *pvParameters)
 
         for(uint32_t j = 0; j < g_inference_data[i]->model_data.dx_num; j++)
         {
-            if(model_data->dx_data[j].update_flag != DATA_UPDATE_FLAG_TRUE)     continue;
+            if(model_data.dx_data[j].update_flag != DATA_UPDATE_FLAG_TRUE)     continue;
            
-            model_data->dx_data[j].update_flag = DATA_UPDATE_FLAG_FALSE;
+            model_data.dx_data[j].update_flag = DATA_UPDATE_FLAG_FALSE;
 
             uint32_t row = g_inference_data[i]->model_data.dx_data[j].current_row;
             uint32_t col = g_inference_data[i]->model_data.input_wicket_col;
             for(uint32_t k = 0; k < g_inference_data[i]->model_data.input_wicket_col; k++)
             {
-                g_inference_data[i]->model_data.dx_data[j].input_wicket_data[row*col+k] = model_data->dx_data[j].real_data[g_inference_data[i]->model_data.input_value_type[k]];        //按照数据类型为模型填充真实数据
+                g_inference_data[i]->model_data.dx_data[j].input_wicket_data[row*col+k] = model_data.dx_data[j].real_data[g_inference_data[i]->model_data.input_value_type[k]];        //按照数据类型为模型填充真实数据
             }
 
             g_inference_data[i]->model_data.dx_data[j].current_row++;
@@ -147,6 +143,10 @@ void inference_data_update_timer_callback(void *pvParameters)
             {
                 g_inference_data[i]->model_data.dx_data[j].full_flag = WICKET_FULL;
             }
+           
+
+            if((g_inference_data[i]->model_data.dx_data[j].full_flag == WICKET_NOT_FULL) && j == 0)
+                printf("dx_num:%d,row:%d,col:%d\n",(int)j,(int)row,(int)col);
         }
         
     }
@@ -168,30 +168,31 @@ void data_real_update_task_handler(void *pvParameters)
 {
     while(1)
     {
+        vTaskDelay(pdMS_TO_TICKS(1000));
         if(sys_config.model_input_source == MODEL_DATA_SOURCE_BMS)
         {
-            if(bms_device.status == BMS_OFFLINE)  return;
+            if(bms_device.status == BMS_OFFLINE)  continue;;
 
-            if(model_data == NULL) break;
+            // if(model_data == NULL) continue;
 
-            for(uint32_t i = 0; i < model_data->dx_num; i++)
+            for(uint32_t i = 0; i < model_data.dx_num; i++)
             {
                 // uint16_t row = model_data->dx_data[i].current_row;
 
-                model_data->dx_data[i].real_data[DATA_TYPE_CFDLC] = bms_device.pack_cfd_lc;
-                model_data->dx_data[i].real_data[DATA_TYPE_CFDZT] = bms_device.pack_cfd_zt;
-                model_data->dx_data[i].real_data[DATA_TYPE_DY] = bms_device.cell_voltage[i] / 100;
-                model_data->dx_data[i].real_data[DATA_TYPE_DL] = bms_device.pack_fCurrent;
-                model_data->dx_data[i].real_data[DATA_TYPE_CFDL] = bms_device.pack_cfd_Crate;
-                model_data->dx_data[i].real_data[DATA_TYPE_CFDT] = bms_device.pack_cfd_time;
+                model_data.dx_data[i].real_data[DATA_TYPE_CFDLC] = bms_device.pack_cfd_lc;
+                model_data.dx_data[i].real_data[DATA_TYPE_CFDZT] = bms_device.pack_cfd_zt;
+                model_data.dx_data[i].real_data[DATA_TYPE_DY] = bms_device.cell_voltage[i] / 100;
+                model_data.dx_data[i].real_data[DATA_TYPE_DL] = bms_device.pack_fCurrent;
+                model_data.dx_data[i].real_data[DATA_TYPE_CFDL] = bms_device.pack_cfd_Crate;
+                model_data.dx_data[i].real_data[DATA_TYPE_CFDT] = bms_device.pack_cfd_time;
                 // model_data->dx_data[i].input_wicket[row][DATA_TYPE_DCLZ] = bms_device.pack_cfd_zt;
-                model_data->dx_data[i].real_data[DATA_TYPE_IC] = bms_device.pack_cfd_ic;
+                model_data.dx_data[i].real_data[DATA_TYPE_IC] = bms_device.pack_cfd_ic;
                 // model_data->dx_data[i].input_wicket[row][DATA_TYPE_SOC] = bms_device.;
                 // model_data->dx_data[i].input_wicket[row][DATA_TYPE_RUL] = bms_device.;
-                model_data->dx_data[i].real_data[DATA_TYPE_SOH] = bms_device.pack_SOH_estimate;
+                model_data.dx_data[i].real_data[DATA_TYPE_SOH] = bms_device.pack_SOH_estimate;
 
                 // model_data->dx_data[i].current_row++;
-                model_data->dx_data[i].update_flag = DATA_UPDATE_FLAG_TRUE;
+                model_data.dx_data[i].update_flag = DATA_UPDATE_FLAG_TRUE;
 
             }
 
@@ -199,16 +200,17 @@ void data_real_update_task_handler(void *pvParameters)
 
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        
     }
 }
 
 void data_interface_init(void)
 {
-    model_data = heap_caps_malloc(sizeof(model_data_t), MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
-    model_data->dx_num = sys_config.pack_config.cell_num;
+    // model_data = heap_caps_malloc(sizeof(model_data_t), MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
+    model_data.dx_num = sys_config.pack_config.cell_num;
 
-    model_data->dx_data = heap_caps_malloc(sizeof(inference_dx_data_t)*model_data->dx_num, MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
+    for(uint32_t j = 0; j < PACK_DX_MAX_NUM; j++)
+        model_data.dx_data[j].update_flag = DATA_UPDATE_FLAG_FALSE;
 
     xTaskCreatePinnedToCore(data_real_update_task_handler, "data_real_task", 1024*5, NULL, 7, NULL, 0);
 

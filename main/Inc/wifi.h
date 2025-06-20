@@ -25,6 +25,6 @@ typedef struct _wifi_device_t
 
 void wifi_device_init(wifi_device_t *wifi_dev);
 
-
+void wifi_init_softap(wifi_device_t *wifi_dev);
 
 #endif

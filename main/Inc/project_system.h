@@ -35,6 +35,11 @@ typedef struct _bms_msg
 }bms_msg_t;
 
 
+typedef union _u8_f_data
+{
+    float f_data;
+    uint8_t u8_data[4];
+}u8_f_data_t;
 
 
 

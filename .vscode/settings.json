@@ -48,6 +48,8 @@
     "littlefs_ops.h": "c",
     "chrono": "c",
     "gpio.h": "c",
-    "inference.h": "c"
+    "inference.h": "c",
+    "mqtt_data_interface.h": "c",
+    "sys.h": "c"
   }
 }

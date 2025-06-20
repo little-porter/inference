@@ -1,5 +1,5 @@
 #include "dtu_4g.h"
-
+#include "mqtt_data_interface.h"
 
 
 static const char *TAG = "PRJ_4G";
@@ -65,8 +65,7 @@ void dtu_4g_config_ack_deal(dtu_4g_device_t *dtu_4g_dev,uint8_t  *data, int len)
 void dtu_4g_msg_deal(dtu_4g_device_t *dtu_4g_dev,uint8_t  *data, int len)
 {
     ESP_LOGI(TAG,"dtu_4g msg deal!");
-
-    
+    mqtt_data_deal(data,len);
 }
 
 void dtu_4g_recive_msg_deal(dtu_4g_device_t *dtu_4g_dev,uint8_t  *data, int len)
@@ -129,14 +128,14 @@ void dtu_4g_send_task_handler(void *pvParameters)
         // dtu_4g_get_uart_baudrate(dtu_4g_dev);
         // dtu_4g_set_uart_baudrate(dtu_4g_dev,9600);
         /* code */
-        while (dtu_4g_dev->tx_fifo.pos != dtu_4g_dev->tx_fifo.tail)
+        while (mqtt_tx_msg_fifo.pos != mqtt_tx_msg_fifo.tail)
         {
             /* code */
-            uart_write_bytes(DTU_4G_UART_PORT,dtu_4g_dev->tx_fifo.data[dtu_4g_dev->tx_fifo.pos],dtu_4g_dev->tx_fifo.len[dtu_4g_dev->tx_fifo.pos]);
+            uart_write_bytes(DTU_4G_UART_PORT,mqtt_tx_msg_fifo.data[mqtt_tx_msg_fifo.pos],mqtt_tx_msg_fifo.len[mqtt_tx_msg_fifo.pos]);
             uart_wait_tx_done(DTU_4G_UART_PORT,portMAX_DELAY);
-            ESP_LOGI(TAG,"发送数据成功，tx_num = %d",dtu_4g_dev->tx_fifo.len[dtu_4g_dev->tx_fifo.pos]);
-            dtu_4g_dev->tx_fifo.pos++;
-            dtu_4g_dev->tx_fifo.pos %= DTU_4G_FIFO_NUM;
+            ESP_LOGI(TAG,"发送数据成功，tx_num = %d",mqtt_tx_msg_fifo.len[mqtt_tx_msg_fifo.pos]);
+            mqtt_tx_msg_fifo.pos++;
+            mqtt_tx_msg_fifo.pos %= DTU_4G_FIFO_NUM;
             
 
             vTaskDelay(pdMS_TO_TICKS(50));
@@ -159,35 +158,40 @@ void dtu_4g_get_uart_baudrate(dtu_4g_device_t *dtu_4g_dev)
 {
     char buffer[200];
     int lenth = snprintf(buffer, sizeof(buffer), "config,get,uart\r\n");
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_set_uart_baudrate(dtu_4g_device_t *dtu_4g_dev,int baudrate)
 {
     char buffer[200];
     int lenth = snprintf(buffer, sizeof(buffer), "config,set,uart,%d,8,0,1,80\r\n",baudrate);
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_save_config(dtu_4g_device_t *dtu_4g_dev)
 {
     char buffer[200];
     int lenth = snprintf(buffer, sizeof(buffer), "config,set,save\r\n");
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_reboot(dtu_4g_device_t *dtu_4g_dev)
 {
     char buffer[200];
     int lenth = snprintf(buffer, sizeof(buffer), "config,set,reboot\r\n");
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_reset(dtu_4g_device_t *dtu_4g_dev)
 {
     char buffer[200];
     int lenth = snprintf(buffer, sizeof(buffer), "config,set,reset\r\n");
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_baudrate_find(dtu_4g_device_t *dtu_4g_dev)
@@ -278,7 +282,8 @@ void dtu_4g_register_topical_cfg(dtu_4g_device_t *dtu_4g_dev,int id)
                                                 "0,0\r\n",
                                                 url,port,id,id);
     printf(buffer);
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_tldevcie_register(dtu_4g_device_t *dtu_4g_dev)
@@ -309,7 +314,8 @@ void dtu_4g_msg_topical_cfg(dtu_4g_device_t *dtu_4g_dev,int id)
                                                 "0,0\r\n",
                                                 url,port,id,id);
     printf(buffer);
-    dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    // dtu_4g_push_data_to_tx_fifo(dtu_4g_dev,(uint8_t *)buffer,lenth);
+    mqtt_push_msg_to_fifo((uint8_t *)buffer,lenth);
 }
 
 void dtu_4g_work_process_task_handler(void *pvParameters)
@@ -331,14 +337,14 @@ void dtu_4g_work_process_task_handler(void *pvParameters)
             dtu_4g_dev->comm_status = DTU_4G_COMM_CONFIG;
             dtu_4g_register_topical_cfg(dtu_4g_dev,1);
             vTaskDelay(pdMS_TO_TICKS(5000));
-            if(dtu_4g_dev->comm_ack == 1)
-            {
-                dtu_4g_save_config(dtu_4g_dev);
-                dtu_4g_dev->comm_ack = 0;
-                dtu_4g_dev->comm_status = DTU_4G_COMM_WORK;
-                dtu_4g_dev->process = DTU_4G_PROCESS_REGISTER; 
-                vTaskDelay(pdMS_TO_TICKS(5000)); 
-            }
+            // if(dtu_4g_dev->comm_ack == 1)
+            // {
+            //     dtu_4g_save_config(dtu_4g_dev);
+            //     dtu_4g_dev->comm_ack = 0;
+            //     dtu_4g_dev->comm_status = DTU_4G_COMM_WORK;
+            //     dtu_4g_dev->process = DTU_4G_PROCESS_REGISTER; 
+            //     vTaskDelay(pdMS_TO_TICKS(5000)); 
+            // }
             break;
         case DTU_4G_PROCESS_REGISTER:
             dtu_4g_dev->comm_ack = 0;

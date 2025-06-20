@@ -43,7 +43,6 @@ void inference_task_callback(model_t model_type)
     {
         
         if(inference_data->model_data.dx_data[i].full_flag == WICKET_NOT_FULL)      continue;
-        printf("Model %d--DX %d inference finish! result is",model_type,i);
         // model_data_uniformization(input_data,inference_data->model_data.input_wicket_row,inference_data->model_data.input_wicket_col,&test_data,0);
         model_data_uniformization(input_data,inference_data->model_data.input_wicket_row,inference_data->model_data.input_wicket_col,inference_data->model_data.dx_data[i].input_wicket_data,inference_data->model_data.dx_data[i].current_row);
             float *output_data = inference_data->model_data.dx_data[i].inference_result;                        //获取推理结果存储地址
@@ -55,6 +54,7 @@ void inference_task_callback(model_t model_type)
             tflm_run(&inference_data->tflm,input_data,input_size/4,output_data,inference_data->model_data.result_num);
             // ESP_ERROR_CHECK(esp_task_wdt_reset());      
             vTaskDelay(5 / portTICK_PERIOD_MS); 
+            printf("Model %d--DX %d inference finish! result is",model_type,i);
             for(int i = 0; i < inference_data->model_data.result_num; i++)   
             {
                 printf(" %f ",output_data[i]);

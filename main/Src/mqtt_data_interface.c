@@ -3,24 +3,16 @@
 
 static const char *TAG = "PRJ_MQTT_DATA_INTERFACE";
 
-#define MQTT_FIFO_SIZE   20
-typedef struct _mqtt_fifo
-{
-    /* data */
-    uint8_t  data[MQTT_FIFO_SIZE][1024];
-    uint16_t len[MQTT_FIFO_SIZE];
-    uint16_t pos;
-    uint16_t tail;
-}mqtt_fifo_t;
 
-mqtt_fifo_t mqtt_msg_fifo;
+
+mqtt_fifo_t mqtt_tx_msg_fifo;
 
 void mqtt_push_msg_to_fifo(uint8_t *data, uint16_t len)
 {
-    memcpy(&mqtt_msg_fifo.data[mqtt_msg_fifo.tail],data,len);
-    mqtt_msg_fifo.len[mqtt_msg_fifo.tail] = len;
-    mqtt_msg_fifo.tail++;
-    mqtt_msg_fifo.tail %= MQTT_FIFO_SIZE;
+    memcpy(&mqtt_tx_msg_fifo.data[mqtt_tx_msg_fifo.tail],data,len);
+    mqtt_tx_msg_fifo.len[mqtt_tx_msg_fifo.tail] = len;
+    mqtt_tx_msg_fifo.tail++;
+    mqtt_tx_msg_fifo.tail %= MQTT_FIFO_SIZE;
 }
 
 uint16_t mqtt_crc16(uint8_t *data, uint16_t len)

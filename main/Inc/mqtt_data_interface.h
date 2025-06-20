@@ -55,7 +55,19 @@
 #define QUERYFRM_TYPE_CJ_PARAM_SET    11U //查询采集模块参数
 #define QUERYFRM_TYPE_LOW_POWER       12U //查询低功耗模式
 
+#define MQTT_FIFO_SIZE   20
+typedef struct _mqtt_fifo
+{
+    /* data */
+    uint8_t  data[MQTT_FIFO_SIZE][1024];
+    uint16_t len[MQTT_FIFO_SIZE];
+    uint16_t pos;
+    uint16_t tail;
+}mqtt_fifo_t;
 
 
+void mqtt_push_msg_to_fifo(uint8_t *data, uint16_t len);
+void mqtt_data_deal(uint8_t *data,uint16_t len);
+extern mqtt_fifo_t mqtt_tx_msg_fifo;
 
 #endif

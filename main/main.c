@@ -22,6 +22,7 @@ void app_main(void)
         .wifi_config.sta.password = "01366795",
     };
     // wifi_device_init(&wifi_device);
+    wifi_init_softap(&wifi_device);
 
     littlefs_ops_init();
     config_init(&sys_config);
@@ -31,7 +32,7 @@ void app_main(void)
     bms_device_init(&bms_device);
     rs485_driver_init(&rs485_driver);
     
-    // dtu_4g_device_init(&dtu_4g_device);
+    dtu_4g_device_init(&dtu_4g_device);
     data_interface_init();
 
     led_init(&led_run,LED_GPIO,LED_DEFAULT_LEVEL_HIGH,LED_STATE_BLINK);
