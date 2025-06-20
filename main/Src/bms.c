@@ -12,7 +12,7 @@ static const char *TAG = "PRJ_BMS";
 #define BMS_ID_LEN_24       24
 #define BMS_ID_LEN_28       28
 
-#define BMS_PACK_CAPACITY   20
+#define BMS_PACK_CAPACITY   2
 
 #define BMS_OFFLINE_TIME    10
 
@@ -352,11 +352,12 @@ void bms_device_msg_deal_task_handler(void *pvParameters)
         bms_msg_t bms_msg;
         xQueueReceive(bms_rx_queue, &bms_msg, portMAX_DELAY);
         bms_data_deal(bms_dev,bms_msg.data,bms_msg.num);
-        for(int i = 0; i < bms_msg.num; i++)
-        {
-            printf("%02x ",bms_msg.data[i]);
-        }
-        printf("\r\n");
+        // for(int i = 0; i < bms_msg.num; i++)
+        // {
+        //     printf("%02x ",bms_msg.data[i]);
+        // }
+
+         printf("\r\n");
     }
 }
 

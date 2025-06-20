@@ -241,7 +241,18 @@ extern "C" void tflm_run(tflm_module_t *tflm,float *input_data,uint32_t input_nu
     /*获取输出张量数据*/
     for (int i = 0; i < num; i++) 
     {
-        output_data[i] = output->data.f[i];
+        if(output->data.f[i] > 1)
+        {
+            output_data[i] = 1;
+        }
+        else if(output->data.f[i] < 0)
+        {
+            output_data[i] = 0;
+        }
+        else
+        {
+            output_data[i] = output->data.f[i];
+        }
     }
 }
 

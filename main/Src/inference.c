@@ -41,7 +41,9 @@ void inference_task_callback(model_t model_type)
     
     for(int i = 0; i < dx_num; i++)
     {
+        
         if(inference_data->model_data.dx_data[i].full_flag == WICKET_NOT_FULL)      continue;
+        printf("Model %d--DX %d inference finish! result is",model_type,i);
         // model_data_uniformization(input_data,inference_data->model_data.input_wicket_row,inference_data->model_data.input_wicket_col,&test_data,0);
         model_data_uniformization(input_data,inference_data->model_data.input_wicket_row,inference_data->model_data.input_wicket_col,inference_data->model_data.dx_data[i].input_wicket_data,inference_data->model_data.dx_data[i].current_row);
             float *output_data = inference_data->model_data.dx_data[i].inference_result;                        //获取推理结果存储地址
@@ -52,8 +54,12 @@ void inference_task_callback(model_t model_type)
             // tflm_run(model_type,input_data,input_size/4,output_data);                                   //进行推理
             tflm_run(&inference_data->tflm,input_data,input_size/4,output_data,inference_data->model_data.result_num);
             // ESP_ERROR_CHECK(esp_task_wdt_reset());      
-            vTaskDelay(5 / portTICK_PERIOD_MS);                                                          
-            printf("Model %d--DX %d inference finish! result is %f %f!\r\n",model_type,i,output_data[0],output_data[1]);
+            vTaskDelay(5 / portTICK_PERIOD_MS); 
+            for(int i = 0; i < inference_data->model_data.result_num; i++)   
+            {
+                printf(" %f ",output_data[i]);
+            }                                                      
+            printf("\r\n");
         }
     }
 
@@ -61,61 +67,6 @@ void inference_task_callback(model_t model_type)
 }
 
 
-/* 电芯SOC推理任务 */
-void inference_soc_task_handler(void *pvParameter)
-{
-    while(1)
-    {
-        ESP_LOGI(TAG,"inference for soc start!");
-        unsigned long  start_time = esp_timer_get_time();
-        inference_task_callback(SOC_MODEL);
-        unsigned long  end_time = esp_timer_get_time();
-        ESP_LOGI(TAG,"inference for soc finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
-        vTaskDelay(pdMS_TO_TICKS(10000));
-    }
-}
-
-/* 电芯SOH推理任务 */
-void inference_soh_task_handler(void *pvParameter)
-{
-    while(1)
-    {
-        ESP_LOGI(TAG,"inference for soh start!");
-        unsigned long  start_time = esp_timer_get_time();
-        inference_task_callback(SOH_MODEL);
-        unsigned long  end_time = esp_timer_get_time();
-        ESP_LOGI(TAG,"inference for soh finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
-        vTaskDelay(pdMS_TO_TICKS(180000));
-    }
-}
-
-/* 电芯RUL推理任务 */
-void inference_rul_task_handler(void *pvParameter)
-{
-    while(1)
-    {
-        ESP_LOGI(TAG,"inference for rul start!");
-        unsigned long  start_time = esp_timer_get_time();
-        inference_task_callback(RUL_MODEL);
-        unsigned long  end_time = esp_timer_get_time();
-        ESP_LOGI(TAG,"inference for rul finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
-        vTaskDelay(pdMS_TO_TICKS(180000));
-    }
-}
-
-/* 电芯RSK推理任务 */
-void inference_rsk_task_handler(void *pvParameter)
-{
-    while(1)
-    {
-        ESP_LOGI(TAG,"inference for rsk start!");
-        unsigned long  start_time = esp_timer_get_time();
-        inference_task_callback(RSK_MODEL);
-        unsigned long  end_time = esp_timer_get_time();
-        ESP_LOGI(TAG,"inference for rsk finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
-        vTaskDelay(pdMS_TO_TICKS(180000));
-    }
-}
 
 extern const unsigned char model_data1[];
 inference_model_data_t *inference_model_create(model_t model_type,const unsigned char *model_data)
@@ -232,18 +183,42 @@ void inference_task_handler(void *pvParameters)
         for (size_t i = 0; i < MODEL_MAX_NUM; i++)
         {
             if(g_inference_data[i] == NULL) continue;
-
+            unsigned long  start_time = 0,end_time = 0;
             /* code */
             switch (g_inference_data[i]->type)
             {
             case SOC_MODEL:
                 /* code */
                 ESP_LOGI(TAG,"inference for soc start!");
-                unsigned long  start_time = esp_timer_get_time();
+                start_time = esp_timer_get_time();
                 inference_task_callback(SOC_MODEL);
-                unsigned long  end_time = esp_timer_get_time();
+                end_time = esp_timer_get_time();
                 ESP_LOGI(TAG,"inference for soc finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
                 // vTaskDelay(pdMS_TO_TICKS(10000));
+                break;
+            case SOH_MODEL:
+                /* code */
+                ESP_LOGI(TAG,"inference for soh start!");
+                start_time = esp_timer_get_time();
+                inference_task_callback(SOH_MODEL);
+                end_time = esp_timer_get_time();
+                ESP_LOGI(TAG,"inference for soh finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
+                break;
+            case RSK_MODEL:
+                /* code */
+                ESP_LOGI(TAG,"inference for rsk start!");
+                start_time = esp_timer_get_time();
+                inference_task_callback(RSK_MODEL);
+                end_time = esp_timer_get_time();
+                ESP_LOGI(TAG,"inference for rsk finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
+                break;
+            case RUL_MODEL:
+                /* code */
+                ESP_LOGI(TAG,"inference for rul start!");
+                start_time = esp_timer_get_time();
+                inference_task_callback(RUL_MODEL);
+                end_time = esp_timer_get_time();
+                ESP_LOGI(TAG,"inference for rul finish! using time is  %d ms!",(int)(end_time-start_time)/1000);
                 break;
             
             default:
@@ -272,9 +247,6 @@ void inference_init(void)
 
     /*  创建推理任务  */
     xTaskCreatePinnedToCore(inference_task_handler, "inference_task", configMINIMAL_STACK_SIZE * 8, NULL, tskIDLE_PRIORITY + 4, NULL, 1);
-    // xTaskCreatePinnedToCore(inference_soh_task_handler, "inference_soh_task", configMINIMAL_STACK_SIZE * 8, NULL, tskIDLE_PRIORITY + 4, NULL, 1);
-    // xTaskCreatePinnedToCore(inference_rul_task_handler, "inference_rul_task", configMINIMAL_STACK_SIZE * 8, NULL, tskIDLE_PRIORITY + 4, NULL, 1);
-    // xTaskCreatePinnedToCore(inference_rsk_task_handler, "inference_rsk_task", configMINIMAL_STACK_SIZE * 8, NULL, tskIDLE_PRIORITY + 4, NULL, 1);
 }
 
 
