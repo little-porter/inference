@@ -94,7 +94,7 @@ char *littlefs_ops_read_file(const char *file_name,littlefs_file_data_t *file_da
     file_data->size = size;
     file_data->data = heap_caps_malloc(size + 1, MALLOC_CAP_SPIRAM);
     memset(file_data->data, 0, size + 1);
-    // char *str = fgets(file_data, size+1, file);
+    // char *str = fgets(file_data, size+1,     );
     size_t read_num = fread(file_data->data, 1, size, file);
     if(read_num != size)
     {

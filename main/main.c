@@ -10,8 +10,11 @@
 #include "config.h"
 #include "led.h"
 #include "data_interface.h"
+#include "dl_rfft.h"
 
 #define LED_GPIO       GPIO_NUM_1
+
+
 
 uint8_t led_state_flag = 0;
 void app_main(void)
@@ -32,20 +35,14 @@ void app_main(void)
     bms_device_init(&bms_device);
     rs485_driver_init(&rs485_driver);
     
-    dtu_4g_device_init(&dtu_4g_device);
+    // dtu_4g_device_init(&dtu_4g_device);
     data_interface_init();
 
     led_init(&led_run,LED_GPIO,LED_DEFAULT_LEVEL_HIGH,LED_STATE_BLINK);
     while(true)
     {
-        // if(led_state_flag){
-        // led_state_flag = 0;
-        // }else{
-        // led_state_flag = 1 ;
-        // }
-        // gpio_set_level(LED_GPIO, led_state_flag);
-
+        
         printf("Hello World\n");
-        vTaskDelay(100000 / portTICK_PERIOD_MS);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 }

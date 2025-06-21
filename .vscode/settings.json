@@ -6,7 +6,7 @@
   //   "interface/ftdi/esp32_devkitj_v1.cfg",
   //   "target/esp32s3.cfg"
   // ],
-  "idf.portWin": "COM28",
+  "idf.portWin": "COM13",
   "idf.toolsPathWin": "D:\\Espressif\\tools",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32s3"
@@ -50,6 +50,7 @@
     "gpio.h": "c",
     "inference.h": "c",
     "mqtt_data_interface.h": "c",
-    "sys.h": "c"
+    "sys.h": "c",
+    "math.h": "c"
   }
 }

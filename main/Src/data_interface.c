@@ -1,7 +1,7 @@
 #include "data_interface.h"
 #include "bms.h"
 
-#define MODEL_DATA_TYPE_NUM          11
+#define MODEL_DATA_TYPE_NUM          13
 
 #define MODEL_WICKET_ROW             280
 #define MODEL_WICKET_COL             MODEL_DATA_TYPE_NUM
@@ -21,6 +21,8 @@ typedef enum {
     DATA_TYPE_SOC   = 8 ,           //荷电状态
     DATA_TYPE_RUL   = 9 ,           //剩余寿命
     DATA_TYPE_SOH   = 10 ,          //健康状态
+    DATA_TYPE_RES   = 11 ,          //电池内阻 
+    DATA_TYPE_TEMP  = 12 ,          //电池温度
     // RSK_FLAG,                    //热失控率
 }data_type_flag;
 
@@ -190,6 +192,8 @@ void data_real_update_task_handler(void *pvParameters)
                 // model_data->dx_data[i].input_wicket[row][DATA_TYPE_SOC] = bms_device.;
                 // model_data->dx_data[i].input_wicket[row][DATA_TYPE_RUL] = bms_device.;
                 model_data.dx_data[i].real_data[DATA_TYPE_SOH] = bms_device.pack_SOH_estimate;
+                model_data.dx_data[i].real_data[DATA_TYPE_RES] = bms_device.pack_cfd_inRes / 100;
+                model_data.dx_data[i].real_data[DATA_TYPE_TEMP] = bms_device.high_temp_cell;
 
                 // model_data->dx_data[i].current_row++;
                 model_data.dx_data[i].update_flag = DATA_UPDATE_FLAG_TRUE;
@@ -216,6 +220,17 @@ void data_interface_init(void)
 
     inference_data_update_timer_init();
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
