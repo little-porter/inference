@@ -70,6 +70,7 @@ void bms_device_init(bms_device_t *bms_dev)
     bms_rx_queue = xQueueCreate(10, sizeof(bms_msg_t));
     bms_dev->status = BMS_OFFLINE;
     bms_dev->offline_time = BMS_OFFLINE_TIME;
+    bms_dev->data_update_flag = 0;
 
     xTaskCreatePinnedToCore(bms_device_msg_deal_task_handler,"bms_msg_deal_task",1025*5,bms_dev,6,&bms_msg_task_handle,0);
     xTaskCreatePinnedToCore(bms_device_cmd_send_task_handler,"bms_cmd_send_task",1025*2,bms_dev,6,&bms_cmd_task_handle,0);
@@ -102,27 +103,38 @@ void bms_device_reg_data_read(bms_device_t *bms_dev)
 }
 
 
-void bms_device_result_send(bms_device_t *bms_dev)
+void bms_device_result_send(uint8_t type,float *result,int len)
 {
-    extern inference_model_data_t *g_inference_data[MODEL_MAX_NUM];
-    u8_f_data_t result;
-    result.f_data = g_inference_data[0]->model_data.dx_data[0].inference_result[0];
-    printf("bms send result:%f\n",result.f_data);
-    uint8_t cmd[20] = {0};
+    // if(bms_device == NULL) return;
+    uint8_t cmd[40] = {0};
     cmd[0] = 0x01;
     cmd[1] = 0xff;
-    cmd[2] = 0x01;
-    cmd[3] = 0x04;
-    cmd[4] = result.u8_data[1];
-    cmd[5] = result.u8_data[0];
-    cmd[6] = result.u8_data[3];
-    cmd[7] = result.u8_data[2];
-    uint16_t crc = bms_crc16_calculate(cmd,8);
-    cmd[8] = crc>>8;
-    cmd[9] = crc&0xff;
+    cmd[2] = type;
+    cmd[3] = (len*4)>>8;
+    cmd[4] = (len*4)&0xff;
+    
+    uint16_t pos = 0;
+    for(int i=0;i<len;i++)
+    {
+        u8_f_data_t result_tem;
+        result_tem.f_data = result[i];
+        cmd[5+4*i] = result_tem.u8_data[1];
+        cmd[6+4*i] = result_tem.u8_data[0];
+        cmd[7+4*i] = result_tem.u8_data[3];
+        cmd[8+4*i] = result_tem.u8_data[2];
+        pos = 8+4*i;
+    }
+    pos++;
+    uint16_t crc = bms_crc16_calculate(cmd,pos);
+    cmd[pos++] = crc>>8;
+    cmd[pos++] = crc&0xff;
+    rs485_push_data_to_tx_fifo(&rs485_driver,cmd,pos);
 
-    rs485_push_data_to_tx_fifo(&rs485_driver,cmd,10);
 }
+
+
+
+
 
 /*充放电状态获取*/
 void bms_get_cfd_state(bms_device_t *bms_dev)
@@ -269,6 +281,7 @@ void bms_cfd_ICArea(bms_device_t *bms_dev)
         }
         if(temp_voltage[i] < 0.01f) return;
         ic[i] = dQ[i]/temp_voltage[i];
+        bms_dev->pack_icarea = ic[i];
     }
 
 
@@ -333,7 +346,7 @@ void bms_data_deal(bms_device_t *bms_dev,uint8_t *buf,uint16_t len)
         bms_dev->pack_fVoltage = bms_dev->packVoltage/100.0f;
         bms_dev->pack_fCurrent = bms_dev->packCurrent/100.0f;
 
-        
+        bms_dev->data_update_flag = 1;
     }
     else if(buf[2] == BMS_ID_LEN_24)
     {
@@ -402,9 +415,9 @@ void bms_device_cmd_send_task_handler(void *pvParameters)
         bms_get_cfd_cycle(bms_dev);
         bms_SOH_estimate(bms_dev);
         bms_cfd_ICArea(bms_dev);
-        time++;
-        time %= 10;
-        if(time == 0)   bms_device_result_send(bms_dev);
+        // time++;
+        // time %= 10;
+        // if(time == 0)   bms_device_result_send(bms_dev);
 
         switch (bms_dev->process)
         {

@@ -32,22 +32,22 @@
 
     "soh_model":{
         "type":  1,
-        "value_type": [0,1,0],
+        "value_type": [10,2,3,4,13,7],
         "file_name": "soh_model.bin",
-        "row":       0,
-        "col":       0,
-        "result":    0,
+        "row":       70,
+        "col":       6,
+        "result":    5,
         "use":       1
     },
 
     "soc_model":
     {
         "type":  1,
-        "value_type": [0,2,5],
+        "value_type": [1,2,5,8],
         "file_name": "soc_model.bin",
         "row":       280,
-        "col":       3,
-        "result":    3,
+        "col":       4,
+        "result":    2,
         "use":       1
     },
 
@@ -65,9 +65,9 @@
         "type":  1,
         "value_type": [0,1,0],
         "file_name": "rsk_model.bin",
-        "row":       0,
-        "col":       0,
-        "result":    0,
+        "row":       360,
+        "col":       10,
+        "result":    15,
         "use":       1
     },
 
@@ -79,7 +79,7 @@
     },
 
     "pack":{
-        "cell_number":  20,
+        "cell_number":  1,
         "capacity":     0.0
     }
 }

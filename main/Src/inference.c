@@ -1,6 +1,6 @@
 #include "inference.h"
 #include "esp_task_wdt.h"
-
+#include "bms.h"
 
 static const char *TAG = "PRJ_INFERENCE";
 
@@ -58,7 +58,22 @@ void inference_task_callback(model_t model_type)
             for(int i = 0; i < inference_data->model_data.result_num; i++)   
             {
                 printf(" %f ",output_data[i]);
-            }                                                      
+            }    
+            float send_output[10] = {0};
+            int send_num = 0;
+            if(model_type == RSK_MODEL)
+            {
+                send_num = inference_data->model_data.result_num/5;
+                // memcpy(send_output,output_data,send_num); 
+            }
+            else
+            {
+                send_num = inference_data->model_data.result_num;
+                memcpy(send_output,output_data,send_num*sizeof(float)); 
+            }
+            
+            bms_device_result_send(model_type,send_output,send_num);
+            
             printf("\r\n");
         }
     }
@@ -107,16 +122,24 @@ inference_model_data_t *inference_model_create(model_t model_type,const unsigned
     }
 
     inference_data->model_data.dx_num = sys_config.pack_config.cell_num;
-    inference_data->model_data.result_num = inference_data->tflm.result_num;
-    // inference_data->model_data.result_num = model_cfg->result;
-    inference_data->model_data.input_wicket_col = inference_data->tflm.input_col;
-    inference_data->model_data.input_wicket_row = inference_data->tflm.input_row;
+    // inference_data->model_data.result_num = inference_data->tflm.result_num;
+    // inference_data->model_data.input_wicket_col = inference_data->tflm.input_col;
+    // inference_data->model_data.input_wicket_row = inference_data->tflm.input_row;
+    inference_data->model_data.result_num = model_cfg->result;
+    inference_data->model_data.input_wicket_col = model_cfg->column;
+    inference_data->model_data.input_wicket_row = model_cfg->row;
+
+
+
     memcpy(inference_data->model_data.input_value_type, model_cfg->value_type, sizeof(model_cfg->value_type));
     inference_data->model_data.dx_data = heap_caps_malloc(sizeof(inference_dx_data_t) * inference_data->model_data.dx_num, MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
 
     //初始化电芯数据
-    int wicket_size = inference_data->tflm.input_col * inference_data->tflm.input_row * sizeof(float);
+    // int wicket_size = inference_data->tflm.input_col * inference_data->tflm.input_row * sizeof(float);
+    // int result_size = inference_data->model_data.result_num * sizeof(float);
+    int wicket_size = inference_data->model_data.input_wicket_col * inference_data->model_data.input_wicket_row * sizeof(float);
     int result_size = inference_data->model_data.result_num * sizeof(float);
+
     for(int i = 0; i < inference_data->model_data.dx_num; i++)
     {
         inference_data->model_data.dx_data[i].input_wicket_data = heap_caps_malloc(wicket_size, MALLOC_CAP_8BIT|MALLOC_CAP_SPIRAM);
@@ -243,6 +266,11 @@ void inference_init(void)
     if(sys_config.soc_config.use == USE)
     {
         inference_model_create(SOC_MODEL,model_data1);
+    }
+
+    if(sys_config.rsk_config.use == USE)
+    {
+        inference_model_create(RSK_MODEL,model_data1);
     }
 
     /*  创建推理任务  */

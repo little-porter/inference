@@ -56,6 +56,7 @@ typedef struct _bms_device
     bms_process_t process;
     bms_status_t status;                            //设备状态//0在线，1离线
     uint16_t     offline_time;
+    uint16_t     data_update_flag;
 
     char id[28];                                    //设备ID
     unsigned char cellNum;                          //电池组电芯数量
@@ -79,10 +80,16 @@ typedef struct _bms_device
     float   pack_cfd_inRes;      //内阻
     float   pack_cfd_ic;        //增量容量
     float   pack_SOH_estimate;  //SOH估计值
+    float   pack_icarea;        //IC面积
 }bms_device_t;
+
+
+
 
 extern bms_device_t bms_device;
 
 void bms_device_init(bms_device_t *bms_dev);
+
+void bms_device_result_send(uint8_t type,float *result,int len);
 
 #endif  /* __BMS_H__ */
